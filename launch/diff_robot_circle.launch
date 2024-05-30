@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- diff_robotを空のGazeboワールドに出現 -->
+<launch>
+    <arg name="model" default="$(find diff_robot_pkg)/xacro/diff_robot.xacro"/>   
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model) --inorder"/>
+
+    <!-- Gazeboワールドを起動 -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+    </include>
+
+    <!-- ロボットモデルを起動 -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+    args="-urdf -model diff_robot -param robot_description"/>
+
+    <rosparam command="load" file="$(find diff_robot_pkg)/config/diff_drive_controller.yaml" ns="/diff_robot"/>
+  
+    <!-- 差動二輪の両タイヤを制御するコントローラを起動 -->
+    <node name="controller_spawner" pkg="controller_manager"
+        type="spawner" respawn="false"
+        output="screen" ns="/diff_robot"
+        args="diff_drive_controller"/>
+        <!-- args="arm1_joint_position_controller joint_state_controller"/> -->
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+    <!-- <node name="figure_eight" pkg="diff_robot_pkg" type="figure_eight" output="screen"/> -->
+    <node name="circle" pkg="diff_robot_pkg" type="circle" output="screen"/>
+
+</launch>
