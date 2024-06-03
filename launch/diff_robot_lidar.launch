@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- 引数 -->
+    <arg name="model" default="$(find diff_robot_pkg)/xacro/diff_robot.xacro"/>
+    <arg name="rvizconfig" default="$(find diff_robot_pkg)/rviz/lidar.rviz" />
+    <arg name="robot_name" default="diff_robot"/>
+    <arg name="init_pose" default=""/>
+
+    <!-- Gazeboワールドを起動 -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(find diff_robot_pkg)/worlds/lidar.world"/>
+        <arg name="verbose" value="true"/>
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true"/>
+        <arg name="headless" value="false"/>
+        <arg name="debug" value="false"/>
+    </include>
+
+    <!-- パラメータにモデルを読み込み -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model) --inorder"/>
+
+    <!-- ロボットモデルを起動 -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" 
+        args="-param robot_description -urdf -model $(arg robot_name) $(arg init_pose) -z 0.3"/>
+
+    <!-- コントローラの起動 -->
+    <rosparam command="load" file="$(find diff_robot_pkg)/config/diff_drive_controller.yaml"/>
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" ns="/diff_robot"
+        args="joint_state_controller diff_drive_controller"/>
+    
+    <!-- robot_state_publisherの起動 -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
+        <remap from="/joint_states" to="/diff_robot/joint_states" />
+    </node>
+
+    <!-- 各ジョイントの目標値をPublish -->
+    <node name="circle" pkg="diff_robot_pkg" type="circle" output="screen"/>
+
+    <!-- rvizの起動 -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(arg rvizconfig)" required="true" />
+
+</launch>
